@@ -1,0 +1,65 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+
+      - name: Build with Maven
+        run: mvn clean install
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Archive Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: build-artifacts
+          path: target/*.jar
+
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+
+      - name: Run unit tests
+        run: mvn test
+
+      - name: Run code coverage
+        run: mvn jacoco:report
+
+      - name: Code quality analysis
+        run: mvn spotbugs:check
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Deploy to staging
+        run: echo "Deploying to staging environment"
+        env:
+          STAGING_ENVIRONMENT_URL: ${{ secrets.STAGING_ENVIRONMENT_URL }}
