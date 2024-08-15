@@ -63,3 +63,15 @@ jobs:
         run: echo "Deploying to staging environment"
         env:
           STAGING_ENVIRONMENT_URL: ${{ secrets.STAGING_ENVIRONMENT_URL }}
+
+  notify:
+    runs-on: ubuntu-latest
+    if: failure()
+    steps:
+      - name: Send Slack Notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
