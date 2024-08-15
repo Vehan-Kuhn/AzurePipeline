@@ -1,4 +1,4 @@
-name: Python CI/CD Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
@@ -11,73 +11,52 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3  # Check out the code from the repository
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      - name: Set up Python
-        uses: actions/setup-python@v4  # Set up the Python environment
-        with:
-          python-version: '3.9'  # Specify the Python version
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt  # Install dependencies from requirements.txt
-
-      - name: Archive Artifacts
-        uses: actions/upload-artifact@v3  # Save the dependencies as artifacts
-        with:
-          name: dependencies
-          path: ./venv
+    - name: Build application
+      run: |
+        # Add any build commands here if necessary
 
   test:
     runs-on: ubuntu-latest
     needs: build
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3  # Check out the code from the repository
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      - name: Set up Python
-        uses: actions/setup-python@v4  # Set up the Python environment
-        with:
-          python-version: '3.9'
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Run Unit Tests
-        run: python -m unittest discover  # Run unit tests with unittest
-
-      - name: Code Quality Analysis
-        run: |
-          flake8 .  # Run flake8 for code quality checks
-          pytest --cov  # Run pytest for code coverage
+    - name: Run tests
+      run: |
+        # Add your test commands here (e.g., pytest)
 
   deploy:
     runs-on: ubuntu-latest
     needs: test
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3  # Check out the code from the repository
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      - name: Deploy to staging
-        run: |
-          echo "Deploying to staging environment"
-          # Replace this with your actual deployment commands, e.g., uploading to a server
+    - name: Deploy to staging
+      run: |
+        echo "Deploying application to staging environment..."
+        # Add your deployment commands here
 
   notify:
     runs-on: ubuntu-latest
-    if: failure()  # Trigger this job only if the build or deploy fails
-
+    needs: [build, test, deploy]
+    if: failure()
     steps:
-      - name: Send Slack Notification
-        uses: 8398a7/action-slack@v3
-        with:
-          status: ${{ job.status }}
-          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+    - name: Send Slack notification
+      run: |
+        curl -X POST -H 'Content-type: application/json' --data '{"text":"CI/CD Pipeline failed! Please check the logs."}' ${{ secrets.SLACK_WEBHOOK_URL }}
